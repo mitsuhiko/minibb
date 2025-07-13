@@ -24,14 +24,6 @@ func (s *Server) setupRoutes() {
 		})
 
 		r.Get("/health", handlers.HealthCheck)
-		
-		// Topic endpoints
-		r.Post("/topics", handlers.CreateTopic)
-		r.Post("/topics/list", handlers.ListTopics)
-		
-		// Post endpoints  
-		r.Post("/posts", handlers.CreatePost)
-		r.Post("/posts/list", handlers.ListPosts)
 	})
 
 	// Static file serving for production
