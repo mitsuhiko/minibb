@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 
+	"minibb/internal/db"
+	"minibb/internal/models"
 	"minibb/internal/utils"
 )
 
@@ -18,4 +21,59 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+type BoardsResponse struct {
+	Boards []BoardWithRecent `json:"boards"`
+}
+
+type BoardWithRecent struct {
+	models.Board
+	RecentTopic *models.Topic `json:"recent_topic"`
+	RecentPost  *models.Post  `json:"recent_post"`
+}
+
+func ListBoards(w http.ResponseWriter, r *http.Request) {
+	database := db.FromContext(r.Context())
+
+	boards, err := getBoardsWithRecent(database)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	response := BoardsResponse{Boards: boards}
+	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func getBoardsWithRecent(database *sql.DB) ([]BoardWithRecent, error) {
+	// Get all boards using the model
+	boards, err := models.GetAllBoards(database)
+	if err != nil {
+		return nil, err
+	}
+
+	// For each board, get the most recent topic and post
+	var boardsWithRecent []BoardWithRecent
+	for _, board := range boards {
+		boardWithRecent := BoardWithRecent{Board: board}
+
+		// Get most recent topic for this board
+		recentTopic, err := models.GetMostRecentTopicByBoardID(database, board.ID)
+		if err != nil {
+			return nil, err
+		}
+		boardWithRecent.RecentTopic = recentTopic
+
+		// Get most recent post for this board
+		recentPost, err := models.GetMostRecentPostByBoardID(database, board.ID)
+		if err != nil {
+			return nil, err
+		}
+		boardWithRecent.RecentPost = recentPost
+
+		boardsWithRecent = append(boardsWithRecent, boardWithRecent)
+	}
+
+	return boardsWithRecent, nil
 }

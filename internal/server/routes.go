@@ -24,6 +24,7 @@ func (s *Server) setupRoutes() {
 		})
 
 		r.Get("/health", handlers.HealthCheck)
+		r.Get("/boards", handlers.ListBoards)
 	})
 
 	// Static file serving for production

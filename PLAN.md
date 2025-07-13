@@ -5,7 +5,7 @@ MiniBB is a small bulletin board modeled after phpBB and 4chan. It doesn't use a
 ## Features
 
 * Users can use tripcode to authenticate
-* Admins can create multiple boards 
+* Admins can create multiple boards (admin permissions are hardcoded in an env var)
 * Users can start multiple topics in those boards. 
 * Each topic can have multiple replies. 
 * There are about 20-30 posts per page, and we use pagination. 
