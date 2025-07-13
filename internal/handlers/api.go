@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -36,9 +35,9 @@ type BoardWithRecent struct {
 }
 
 func ListBoards(w http.ResponseWriter, r *http.Request) {
-	database := db.FromContext(r.Context())
+	querier := db.QuerierFromContext(r.Context())
 
-	boards, err := getBoardsWithRecent(database)
+	boards, err := getBoardsWithRecent(querier)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -48,9 +47,9 @@ func ListBoards(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
-func getBoardsWithRecent(database *sql.DB) ([]BoardWithRecent, error) {
+func getBoardsWithRecent(querier db.Querier) ([]BoardWithRecent, error) {
 	// Get all boards using the model
-	boards, err := models.GetAllBoards(database)
+	boards, err := models.GetAllBoards(querier)
 	if err != nil {
 		return nil, err
 	}
@@ -61,14 +60,14 @@ func getBoardsWithRecent(database *sql.DB) ([]BoardWithRecent, error) {
 		boardWithRecent := BoardWithRecent{Board: board}
 
 		// Get most recent topic for this board
-		recentTopic, err := models.GetMostRecentTopicByBoardID(database, board.ID)
+		recentTopic, err := models.GetMostRecentTopicByBoardID(querier, board.ID)
 		if err != nil {
 			return nil, err
 		}
 		boardWithRecent.RecentTopic = recentTopic
 
 		// Get most recent post for this board
-		recentPost, err := models.GetMostRecentPostByBoardID(database, board.ID)
+		recentPost, err := models.GetMostRecentPostByBoardID(querier, board.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -86,10 +85,10 @@ type TopicsResponse struct {
 }
 
 func ListTopics(w http.ResponseWriter, r *http.Request) {
-	database := db.FromContext(r.Context())
+	querier := db.QuerierFromContext(r.Context())
 	boardSlug := chi.URLParam(r, "board")
 
-	board, err := models.GetBoardBySlug(database, boardSlug)
+	board, err := models.GetBoardBySlug(querier, boardSlug)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -101,13 +100,13 @@ func ListTopics(w http.ResponseWriter, r *http.Request) {
 
 	params := utils.ParsePaginationParams(r)
 
-	topics, err := models.GetTopicsByBoardIDWithPagination(database, board.ID, params.PerPage, params.Offset)
+	topics, err := models.GetTopicsByBoardIDWithPagination(querier, board.ID, params.PerPage, params.Offset)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 
-	total, err := models.CountTopicsByBoardID(database, board.ID)
+	total, err := models.CountTopicsByBoardID(querier, board.ID)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -129,7 +128,7 @@ type PostsResponse struct {
 }
 
 func ListPosts(w http.ResponseWriter, r *http.Request) {
-	database := db.FromContext(r.Context())
+	querier := db.QuerierFromContext(r.Context())
 	topicIDStr := chi.URLParam(r, "topicId")
 
 	topicID, err := utils.ParseInt(topicIDStr)
@@ -138,7 +137,7 @@ func ListPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topic, err := models.GetTopicByID(database, topicID)
+	topic, err := models.GetTopicByID(querier, topicID)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -150,13 +149,13 @@ func ListPosts(w http.ResponseWriter, r *http.Request) {
 
 	params := utils.ParsePaginationParams(r)
 
-	posts, err := models.GetPostsByTopicIDWithPagination(database, topicID, params.PerPage, params.Offset)
+	posts, err := models.GetPostsByTopicIDWithPagination(querier, topicID, params.PerPage, params.Offset)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 
-	total, err := models.CountPostsByTopicID(database, topicID)
+	total, err := models.CountPostsByTopicID(querier, topicID)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

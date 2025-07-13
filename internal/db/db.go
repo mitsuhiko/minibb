@@ -13,6 +13,13 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// Querier defines the interface that both sql.DB and sql.Tx implement
+type Querier interface {
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+	Exec(query string, args ...interface{}) (sql.Result, error)
+}
+
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
@@ -160,5 +167,33 @@ func applyMigration(db *sql.DB, migrationNumber int, filename string) error {
 	}
 
 	fmt.Printf("Applied migration: %s\n", filename)
+	return nil
+}
+
+// RunMigrationsForTesting runs migrations on the provided database for testing
+func RunMigrationsForTesting(database *sql.DB) error {
+	return runMigrations(database)
+}
+
+// BeginTx starts a transaction and returns it as a Querier
+func BeginTx(db *sql.DB) (Querier, error) {
+	return db.Begin()
+}
+
+// RollbackTx rolls back a transaction if it's actually a transaction
+func RollbackTx(q Querier) error {
+	if tx, ok := q.(*sql.Tx); ok {
+		return tx.Rollback()
+	}
+	// If it's not a transaction, nothing to rollback
+	return nil
+}
+
+// CommitTx commits a transaction if it's actually a transaction
+func CommitTx(q Querier) error {
+	if tx, ok := q.(*sql.Tx); ok {
+		return tx.Commit()
+	}
+	// If it's not a transaction, nothing to commit
 	return nil
 }

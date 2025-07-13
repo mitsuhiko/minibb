@@ -3,6 +3,8 @@ package models
 import (
 	"database/sql"
 	"time"
+
+	"minibb/internal/db"
 )
 
 type Topic struct {
@@ -16,11 +18,11 @@ type Topic struct {
 	PostCount  int       `json:"post_count"`
 }
 
-func GetTopicByID(db *sql.DB, id int) (*Topic, error) {
+func GetTopicByID(q db.Querier, id int) (*Topic, error) {
 	query := `SELECT id, board_id, title, author, pub_date, status, last_post_id, post_count 
 		FROM topics WHERE id = ?`
 	var topic Topic
-	err := db.QueryRow(query, id).Scan(
+	err := q.QueryRow(query, id).Scan(
 		&topic.ID, &topic.BoardID, &topic.Title, &topic.Author,
 		&topic.PubDate, &topic.Status, &topic.LastPostID, &topic.PostCount,
 	)
@@ -33,10 +35,10 @@ func GetTopicByID(db *sql.DB, id int) (*Topic, error) {
 	return &topic, nil
 }
 
-func GetTopicsByBoardID(db *sql.DB, boardID int) ([]Topic, error) {
+func GetTopicsByBoardID(q db.Querier, boardID int) ([]Topic, error) {
 	query := `SELECT id, board_id, title, author, pub_date, status, last_post_id, post_count 
 		FROM topics WHERE board_id = ? ORDER BY pub_date DESC`
-	rows, err := db.Query(query, boardID)
+	rows, err := q.Query(query, boardID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,11 +59,11 @@ func GetTopicsByBoardID(db *sql.DB, boardID int) ([]Topic, error) {
 	return topics, rows.Err()
 }
 
-func GetMostRecentTopicByBoardID(db *sql.DB, boardID int) (*Topic, error) {
+func GetMostRecentTopicByBoardID(q db.Querier, boardID int) (*Topic, error) {
 	query := `SELECT id, board_id, title, author, pub_date, status, last_post_id, post_count 
 		FROM topics WHERE board_id = ? ORDER BY pub_date DESC LIMIT 1`
 	var topic Topic
-	err := db.QueryRow(query, boardID).Scan(
+	err := q.QueryRow(query, boardID).Scan(
 		&topic.ID, &topic.BoardID, &topic.Title, &topic.Author,
 		&topic.PubDate, &topic.Status, &topic.LastPostID, &topic.PostCount,
 	)
@@ -74,10 +76,10 @@ func GetMostRecentTopicByBoardID(db *sql.DB, boardID int) (*Topic, error) {
 	return &topic, nil
 }
 
-func GetTopicsByBoardIDWithPagination(db *sql.DB, boardID int, limit, offset int) ([]Topic, error) {
+func GetTopicsByBoardIDWithPagination(q db.Querier, boardID int, limit, offset int) ([]Topic, error) {
 	query := `SELECT id, board_id, title, author, pub_date, status, last_post_id, post_count 
 		FROM topics WHERE board_id = ? ORDER BY pub_date DESC LIMIT ? OFFSET ?`
-	rows, err := db.Query(query, boardID, limit, offset)
+	rows, err := q.Query(query, boardID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -98,22 +100,61 @@ func GetTopicsByBoardIDWithPagination(db *sql.DB, boardID int, limit, offset int
 	return topics, rows.Err()
 }
 
-func CountTopicsByBoardID(db *sql.DB, boardID int) (int, error) {
+func CountTopicsByBoardID(q db.Querier, boardID int) (int, error) {
 	query := `SELECT COUNT(*) FROM topics WHERE board_id = ?`
 	var count int
-	err := db.QueryRow(query, boardID).Scan(&count)
+	err := q.QueryRow(query, boardID).Scan(&count)
 	return count, err
 }
 
-func CreateTopic(db *sql.DB, boardID int, title, author, content string) (*Topic, error) {
-	tx, err := db.Begin()
+// CreateTopic creates a new topic with an initial post atomically
+func CreateTopic(tm *db.TxManager, boardID int, title, author, content string) (*Topic, error) {
+	var topicID int64
+
+	err := tm.WithTx(func(q db.Querier) error {
+		// Create the topic
+		topicQuery := `INSERT INTO topics (board_id, title, author) VALUES (?, ?, ?)`
+		topicResult, err := q.Exec(topicQuery, boardID, title, author)
+		if err != nil {
+			return err
+		}
+
+		topicID, err = topicResult.LastInsertId()
+		if err != nil {
+			return err
+		}
+
+		// Create the initial post
+		postQuery := `INSERT INTO posts (topic_id, author, content) VALUES (?, ?, ?)`
+		postResult, err := q.Exec(postQuery, topicID, author, content)
+		if err != nil {
+			return err
+		}
+
+		postID, err := postResult.LastInsertId()
+		if err != nil {
+			return err
+		}
+
+		// Update topic with the post ID
+		updateTopicQuery := `UPDATE topics SET last_post_id = ? WHERE id = ?`
+		_, err = q.Exec(updateTopicQuery, postID, topicID)
+		return err
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
 
+	// Return the created topic using the transaction manager's querier
+	return GetTopicByID(tm.Querier(), int(topicID))
+}
+
+// CreateTopicWithQuerier creates a topic assuming we're already in the right transactional context
+func CreateTopicWithQuerier(q db.Querier, boardID int, title, author, content string) (*Topic, error) {
+	// Create the topic
 	topicQuery := `INSERT INTO topics (board_id, title, author) VALUES (?, ?, ?)`
-	topicResult, err := tx.Exec(topicQuery, boardID, title, author)
+	topicResult, err := q.Exec(topicQuery, boardID, title, author)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +164,9 @@ func CreateTopic(db *sql.DB, boardID int, title, author, content string) (*Topic
 		return nil, err
 	}
 
+	// Create the initial post
 	postQuery := `INSERT INTO posts (topic_id, author, content) VALUES (?, ?, ?)`
-	postResult, err := tx.Exec(postQuery, topicID, author, content)
+	postResult, err := q.Exec(postQuery, topicID, author, content)
 	if err != nil {
 		return nil, err
 	}
@@ -134,15 +176,12 @@ func CreateTopic(db *sql.DB, boardID int, title, author, content string) (*Topic
 		return nil, err
 	}
 
+	// Update topic with the post ID
 	updateTopicQuery := `UPDATE topics SET last_post_id = ? WHERE id = ?`
-	_, err = tx.Exec(updateTopicQuery, postID, topicID)
+	_, err = q.Exec(updateTopicQuery, postID, topicID)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	return GetTopicByID(db, int(topicID))
+	return GetTopicByID(q, int(topicID))
 }

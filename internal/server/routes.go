@@ -18,7 +18,7 @@ func (s *Server) setupRoutes() {
 		// Add database context middleware
 		r.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ctx := db.WithDB(r.Context(), s.db)
+				ctx := db.WithQuerier(r.Context(), s.db)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			})
 		})

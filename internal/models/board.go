@@ -2,6 +2,8 @@ package models
 
 import (
 	"database/sql"
+
+	"minibb/internal/db"
 )
 
 type Board struct {
@@ -10,9 +12,9 @@ type Board struct {
 	Description string `json:"description"`
 }
 
-func GetAllBoards(db *sql.DB) ([]Board, error) {
+func GetAllBoards(q db.Querier) ([]Board, error) {
 	query := `SELECT id, slug, description FROM boards ORDER BY id`
-	rows, err := db.Query(query)
+	rows, err := q.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -30,10 +32,10 @@ func GetAllBoards(db *sql.DB) ([]Board, error) {
 	return boards, rows.Err()
 }
 
-func GetBoardByID(db *sql.DB, id int) (*Board, error) {
+func GetBoardByID(q db.Querier, id int) (*Board, error) {
 	query := `SELECT id, slug, description FROM boards WHERE id = ?`
 	var board Board
-	err := db.QueryRow(query, id).Scan(&board.ID, &board.Slug, &board.Description)
+	err := q.QueryRow(query, id).Scan(&board.ID, &board.Slug, &board.Description)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -43,10 +45,10 @@ func GetBoardByID(db *sql.DB, id int) (*Board, error) {
 	return &board, nil
 }
 
-func GetBoardBySlug(db *sql.DB, slug string) (*Board, error) {
+func GetBoardBySlug(q db.Querier, slug string) (*Board, error) {
 	query := `SELECT id, slug, description FROM boards WHERE slug = ?`
 	var board Board
-	err := db.QueryRow(query, slug).Scan(&board.ID, &board.Slug, &board.Description)
+	err := q.QueryRow(query, slug).Scan(&board.ID, &board.Slug, &board.Description)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
