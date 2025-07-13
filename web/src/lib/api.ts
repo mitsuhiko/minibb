@@ -1,3 +1,5 @@
+import type { BoardsResponse } from "./types";
+
 const API_BASE = "/api";
 
 class ApiClient {
@@ -55,6 +57,11 @@ class ApiClient {
   // Health check
   async health() {
     return this.get<{ status: string; message: string }>("/health");
+  }
+
+  // Boards
+  async getBoards() {
+    return this.get<BoardsResponse>("/boards");
   }
 }
 
