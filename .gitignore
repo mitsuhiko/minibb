@@ -1,0 +1,21 @@
+# Go
+bin/
+*.db
+*.log
+
+# Frontend
+web/node_modules/
+web/dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.shoreman.pid
