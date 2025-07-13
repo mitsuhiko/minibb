@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { consoleForwardPlugin } from "vite-console-forward-plugin";
 import path from "path";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), consoleForwardPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

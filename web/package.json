@@ -14,7 +14,8 @@
     "@tanstack/react-query": "^5.28.4",
     "@tanstack/react-router": "^1.19.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "vite-console-forward-plugin": "^2.0.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.11",

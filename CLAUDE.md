@@ -33,6 +33,7 @@ make tail-log     # Reads the current log file (last 100 lines of code)
 - Rate limiting by IP address
 
 **Frontend (React/TypeScript)**
+- We always use `npm` as a package manager
 - React with Vite build system
 - TanStack Query for data fetching
 - TanStack Router for routing  
