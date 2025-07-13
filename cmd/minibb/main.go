@@ -7,13 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"minibb/internal/database"
+	"minibb/internal/db"
 	"minibb/internal/server"
 )
 
 func main() {
 	// Initialize database
-	db, err := database.Init()
+	db, err := db.Init()
 	if err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}

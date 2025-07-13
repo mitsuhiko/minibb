@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"minibb/internal/utils"
 	"net/http"
 )
 
@@ -16,9 +16,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		Message: "MiniBB server is running",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
 // TODO: Add other API handlers for boards, topics, posts
