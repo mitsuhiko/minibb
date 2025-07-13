@@ -70,9 +70,6 @@ start_command() {
 load_env_file() {
   local env_file=${1:-'.env'}
 
-  # Set a default port before loading the .env file
-  export PORT=${PORT:-5000}
-
   if [[ -f "$env_file" ]]; then
     export $(grep "^[^#]*=.*" "$env_file" | xargs)
   fi
