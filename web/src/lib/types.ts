@@ -46,3 +46,9 @@ export interface TopicsResponse {
   topics: Topic[];
   pagination: PaginationMeta;
 }
+
+export interface PostsResponse {
+  posts: Post[];
+  topic: Topic;
+  pagination: PaginationMeta;
+}

@@ -88,3 +88,33 @@ func GetMostRecentPostByTopicID(db *sql.DB, topicID int) (*Post, error) {
 	}
 	return &post, nil
 }
+
+func GetPostsByTopicIDWithPagination(db *sql.DB, topicID int, limit, offset int) ([]Post, error) {
+	query := `SELECT id, topic_id, author, content, pub_date 
+		FROM posts WHERE topic_id = ? ORDER BY pub_date ASC LIMIT ? OFFSET ?`
+	rows, err := db.Query(query, topicID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		if err := rows.Scan(
+			&post.ID, &post.TopicID, &post.Author, &post.Content, &post.PubDate,
+		); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	return posts, rows.Err()
+}
+
+func CountPostsByTopicID(db *sql.DB, topicID int) (int, error) {
+	query := `SELECT COUNT(*) FROM posts WHERE topic_id = ?`
+	var count int
+	err := db.QueryRow(query, topicID).Scan(&count)
+	return count, err
+}

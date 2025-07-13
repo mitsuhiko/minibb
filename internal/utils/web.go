@@ -76,3 +76,7 @@ func CalculatePaginationMeta(page, perPage, total int) PaginationMeta {
 		Total:      total,
 	}
 }
+
+func ParseInt(s string) (int, error) {
+	return strconv.Atoi(s)
+}

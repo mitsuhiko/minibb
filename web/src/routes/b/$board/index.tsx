@@ -1,14 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { apiClient } from "../../lib/api";
-import type { Topic, PaginationMeta } from "../../lib/types";
+import { apiClient } from "../../../lib/api";
+import type { Topic, PaginationMeta } from "../../../lib/types";
 
 interface BoardSearchParams {
   page?: number;
 }
 
-export const Route = createFileRoute("/b/$board")({
+export const Route = createFileRoute("/b/$board/")({
   validateSearch: (search: Record<string, unknown>): BoardSearchParams => {
     return {
       page: Number(search?.page) || 1,
@@ -113,12 +113,18 @@ function BoardPage() {
 }
 
 function TopicRow({ topic }: { topic: Topic }) {
+  const { board } = Route.useParams();
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
 
   return (
-    <div className="bg-white rounded border hover:bg-gray-50 transition-colors p-4">
+    <Link
+      to="/b/$board/t/$topic"
+      params={{ board, topic: topic.id.toString() }}
+      className="block bg-white rounded border hover:bg-gray-50 transition-colors p-4"
+    >
       <div className="flex justify-between items-center">
         <div className="flex-1">
           <h3 className="text-lg font-medium text-blue-600 hover:text-blue-800">
@@ -132,7 +138,7 @@ function TopicRow({ topic }: { topic: Topic }) {
           {topic.post_count} posts
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

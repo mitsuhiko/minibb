@@ -10,43 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as BBoardRouteImport } from './routes/b/$board'
+import { Route as BBoardIndexRouteImport } from './routes/b/$board/index'
+import { Route as BBoardTTopicRouteImport } from './routes/b/$board/t.$topic'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BBoardRoute = BBoardRouteImport.update({
-  id: '/b/$board',
-  path: '/b/$board',
+const BBoardIndexRoute = BBoardIndexRouteImport.update({
+  id: '/b/$board/',
+  path: '/b/$board/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BBoardTTopicRoute = BBoardTTopicRouteImport.update({
+  id: '/b/$board/t/$topic',
+  path: '/b/$board/t/$topic',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/b/$board': typeof BBoardRoute
+  '/b/$board': typeof BBoardIndexRoute
+  '/b/$board/t/$topic': typeof BBoardTTopicRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/b/$board': typeof BBoardRoute
+  '/b/$board': typeof BBoardIndexRoute
+  '/b/$board/t/$topic': typeof BBoardTTopicRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/b/$board': typeof BBoardRoute
+  '/b/$board/': typeof BBoardIndexRoute
+  '/b/$board/t/$topic': typeof BBoardTTopicRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/b/$board'
+  fullPaths: '/' | '/b/$board' | '/b/$board/t/$topic'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/b/$board'
-  id: '__root__' | '/' | '/b/$board'
+  to: '/' | '/b/$board' | '/b/$board/t/$topic'
+  id: '__root__' | '/' | '/b/$board/' | '/b/$board/t/$topic'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BBoardRoute: typeof BBoardRoute
+  BBoardIndexRoute: typeof BBoardIndexRoute
+  BBoardTTopicRoute: typeof BBoardTTopicRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,11 +68,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/b/$board': {
-      id: '/b/$board'
+    '/b/$board/': {
+      id: '/b/$board/'
       path: '/b/$board'
       fullPath: '/b/$board'
-      preLoaderRoute: typeof BBoardRouteImport
+      preLoaderRoute: typeof BBoardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/b/$board/t/$topic': {
+      id: '/b/$board/t/$topic'
+      path: '/b/$board/t/$topic'
+      fullPath: '/b/$board/t/$topic'
+      preLoaderRoute: typeof BBoardTTopicRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -70,7 +87,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BBoardRoute: BBoardRoute,
+  BBoardIndexRoute: BBoardIndexRoute,
+  BBoardTTopicRoute: BBoardTTopicRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

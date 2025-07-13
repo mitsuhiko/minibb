@@ -121,3 +121,53 @@ func ListTopics(w http.ResponseWriter, r *http.Request) {
 
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
+
+type PostsResponse struct {
+	Posts      []models.Post        `json:"posts"`
+	Topic      *models.Topic        `json:"topic"`
+	Pagination utils.PaginationMeta `json:"pagination"`
+}
+
+func ListPosts(w http.ResponseWriter, r *http.Request) {
+	database := db.FromContext(r.Context())
+	topicIDStr := chi.URLParam(r, "topicId")
+
+	topicID, err := utils.ParseInt(topicIDStr)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, utils.APIError{Detail: "invalid topic ID"})
+		return
+	}
+
+	topic, err := models.GetTopicByID(database, topicID)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	if topic == nil {
+		utils.RespondWithError(w, http.StatusNotFound, utils.APIError{Detail: "topic not found"})
+		return
+	}
+
+	params := utils.ParsePaginationParams(r)
+
+	posts, err := models.GetPostsByTopicIDWithPagination(database, topicID, params.PerPage, params.Offset)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	total, err := models.CountPostsByTopicID(database, topicID)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	meta := utils.CalculatePaginationMeta(params.Page, params.PerPage, total)
+	response := PostsResponse{
+		Posts:      posts,
+		Topic:      topic,
+		Pagination: meta,
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, response)
+}
