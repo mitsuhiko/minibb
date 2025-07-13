@@ -104,3 +104,45 @@ func CountTopicsByBoardID(db *sql.DB, boardID int) (int, error) {
 	err := db.QueryRow(query, boardID).Scan(&count)
 	return count, err
 }
+
+func CreateTopic(db *sql.DB, boardID int, title, author, content string) (*Topic, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	topicQuery := `INSERT INTO topics (board_id, title, author) VALUES (?, ?, ?)`
+	topicResult, err := tx.Exec(topicQuery, boardID, title, author)
+	if err != nil {
+		return nil, err
+	}
+
+	topicID, err := topicResult.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	postQuery := `INSERT INTO posts (topic_id, author, content) VALUES (?, ?, ?)`
+	postResult, err := tx.Exec(postQuery, topicID, author, content)
+	if err != nil {
+		return nil, err
+	}
+
+	postID, err := postResult.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	updateTopicQuery := `UPDATE topics SET last_post_id = ? WHERE id = ?`
+	_, err = tx.Exec(updateTopicQuery, postID, topicID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return GetTopicByID(db, int(topicID))
+}

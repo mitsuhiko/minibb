@@ -118,3 +118,18 @@ func CountPostsByTopicID(db *sql.DB, topicID int) (int, error) {
 	err := db.QueryRow(query, topicID).Scan(&count)
 	return count, err
 }
+
+func CreatePost(db *sql.DB, topicID int, author, content string) (*Post, error) {
+	query := `INSERT INTO posts (topic_id, author, content) VALUES (?, ?, ?)`
+	result, err := db.Exec(query, topicID, author, content)
+	if err != nil {
+		return nil, err
+	}
+
+	postID, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	return GetPostByID(db, int(postID))
+}
