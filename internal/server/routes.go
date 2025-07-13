@@ -8,14 +8,30 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"minibb/internal/db"
 	"minibb/internal/handlers"
 )
 
 func (s *Server) setupRoutes() {
 	// API routes
 	s.router.Route("/api", func(r chi.Router) {
+		// Add database context middleware
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ctx := db.WithDB(r.Context(), s.db)
+				next.ServeHTTP(w, r.WithContext(ctx))
+			})
+		})
+
 		r.Get("/health", handlers.HealthCheck)
-		// TODO: Add other API endpoints
+		
+		// Topic endpoints
+		r.Post("/topics", handlers.CreateTopic)
+		r.Post("/topics/list", handlers.ListTopics)
+		
+		// Post endpoints  
+		r.Post("/posts", handlers.CreatePost)
+		r.Post("/posts/list", handlers.ListPosts)
 	})
 
 	// Static file serving for production
