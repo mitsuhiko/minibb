@@ -22,6 +22,7 @@ make tail-log     # Reads the current log file (last 100 lines of code)
 * The server and the frontend log everything into the dev.log file.
 * Use the `make tail-log` command to read the log file. 
 * Never stop the server! It keeps running.  It auto compiles and auto reloads.  It does log to `dev.log`
+* If you fail to run the Makefile, you have to remember that you have to run it from the top-level directory.
 
 ## Architecture
 

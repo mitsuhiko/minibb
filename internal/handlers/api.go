@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"minibb/internal/db"
 	"minibb/internal/models"
 	"minibb/internal/utils"
@@ -76,4 +78,46 @@ func getBoardsWithRecent(database *sql.DB) ([]BoardWithRecent, error) {
 	}
 
 	return boardsWithRecent, nil
+}
+
+type TopicsResponse struct {
+	Topics     []models.Topic       `json:"topics"`
+	Pagination utils.PaginationMeta `json:"pagination"`
+}
+
+func ListTopics(w http.ResponseWriter, r *http.Request) {
+	database := db.FromContext(r.Context())
+	boardSlug := chi.URLParam(r, "board")
+
+	board, err := models.GetBoardBySlug(database, boardSlug)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	if board == nil {
+		utils.RespondWithError(w, http.StatusNotFound, utils.APIError{Detail: "board not found"})
+		return
+	}
+
+	params := utils.ParsePaginationParams(r)
+
+	topics, err := models.GetTopicsByBoardIDWithPagination(database, board.ID, params.PerPage, params.Offset)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	total, err := models.CountTopicsByBoardID(database, board.ID)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	meta := utils.CalculatePaginationMeta(params.Page, params.PerPage, total)
+	response := TopicsResponse{
+		Topics:     topics,
+		Pagination: meta,
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, response)
 }

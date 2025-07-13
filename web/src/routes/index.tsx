@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../lib/api";
 import type { BoardWithRecent } from "../lib/types";
@@ -8,7 +8,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { data: boardsData, isLoading, error } = useQuery({
+  const {
+    data: boardsData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["boards"],
     queryFn: () => apiClient.getBoards(),
   });
@@ -39,10 +43,12 @@ function Index() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="space-y-6">
         <h3 className="text-xl font-semibold text-gray-900">Boards</h3>
-        
+
         {boards.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-500">No boards available yet. Check back later!</p>
+            <p className="text-gray-500">
+              No boards available yet. Check back later!
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -65,9 +71,13 @@ function BoardCard({ board }: { board: BoardWithRecent }) {
     <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h4 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
+          <Link
+            to="/b/$board"
+            params={{ board: board.slug }}
+            className="text-lg font-semibold text-blue-600 hover:text-blue-800 block"
+          >
             /{board.slug}/
-          </h4>
+          </Link>
           <p className="text-gray-600 text-sm mt-1">{board.description}</p>
         </div>
 
@@ -80,7 +90,8 @@ function BoardCard({ board }: { board: BoardWithRecent }) {
               by {board.recent_topic.author}
             </div>
             <div className="text-xs text-gray-500">
-              {formatDate(board.recent_topic.pub_date)} • {board.recent_topic.post_count} posts
+              {formatDate(board.recent_topic.pub_date)} •{" "}
+              {board.recent_topic.post_count} posts
             </div>
           </div>
         ) : (

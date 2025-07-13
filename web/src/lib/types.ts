@@ -34,3 +34,15 @@ export interface BoardWithRecent {
 export interface BoardsResponse {
   boards: BoardWithRecent[];
 }
+
+export interface PaginationMeta {
+  page: number;
+  per_page: number;
+  total_pages: number;
+  total: number;
+}
+
+export interface TopicsResponse {
+  topics: Topic[];
+  pagination: PaginationMeta;
+}

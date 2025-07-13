@@ -1,4 +1,4 @@
-import type { BoardsResponse } from "./types";
+import type { BoardsResponse, TopicsResponse } from "./types";
 
 const API_BASE = "/api";
 
@@ -62,6 +62,15 @@ class ApiClient {
   // Boards
   async getBoards() {
     return this.get<BoardsResponse>("/boards");
+  }
+
+  // Topics
+  async getTopics(boardSlug: string, page: number = 1, perPage: number = 50) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      per_page: perPage.toString(),
+    });
+    return this.get<TopicsResponse>(`/boards/${boardSlug}/topics?${params}`);
   }
 }
 
