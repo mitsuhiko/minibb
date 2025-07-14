@@ -3,6 +3,9 @@ bin/
 *.db
 *.log
 
+# Python
+__pycache__
+
 # Frontend
 web/node_modules/
 web/dist/

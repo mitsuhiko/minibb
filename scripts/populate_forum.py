@@ -2,37 +2,90 @@
 """
 Forum Population Script for MiniBB
 
-This script reads forum conversation data from a JSON file and populates
+This script generates forum conversation data using Claude Code CLI and populates
 the MiniBB database with realistic test data including topics and posts
 across multiple boards.
 
 Usage:
-    uv run scripts/populate_forum.py [conversation_file.json]
-    
-    If no file is specified, uses forum_conversations.json
+    uv run scripts/populate_forum.py <num_threads> <posts_per_thread>
     
 Examples:
-    uv run scripts/populate_forum.py
-    uv run scripts/populate_forum.py extended_conversations.json
+    uv run scripts/populate_forum.py 10 5     # Generate 10 threads with 5 posts each
+    uv run scripts/populate_forum.py 20 8     # Generate 20 threads with 8 posts each
 """
 
 import json
 import sqlite3
 import sys
+import subprocess
 from datetime import datetime, timedelta
 import random
 from pathlib import Path
+import argparse
 
-def load_conversations(file_path):
-    """Load conversation data from JSON file."""
+def generate_conversations_with_claude(num_threads, posts_per_thread):
+    """Generate conversation data using Claude Code CLI."""
+    prompt = f"""Generate realistic forum conversations in JSON format for a bulletin board system. Create exactly {num_threads} conversations with exactly {posts_per_thread} posts each.
+
+Requirements:
+- Use boards: "general", "watercooler", "test"
+- Each conversation should have a realistic title and engaging discussion
+- Authors should use realistic usernames, some with tripcodes (format: username!tripcode)
+- Posts should feel natural and conversational
+- Topics can be about programming, technology, hobbies, current events, or general discussion
+- Vary the writing styles and personalities
+
+Output ONLY valid JSON in this exact format (NO MARKDOWN WRAPPER OR ADDITIONAL TEXT):
+
+[
+  {{
+    "board": "general",
+    "title": "Topic title here",
+    "posts": [
+      {{
+        "author": "username",
+        "content": "Post content here"
+      }},
+      {{
+        "author": "username!tripcode",
+        "content": "Reply content here"
+      }}
+    ]
+  }}
+]
+
+IMPORTANT: Do not use any tools or external resources. Generate the complete response directly without any tool invocations. Output only the JSON array, no explanations or additional text."""
+
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"Error: Conversation file '{file_path}' not found")
+        print(f"Generating {num_threads} conversations with {posts_per_thread} posts each using Claude Code...")
+        
+        # Call Claude Code CLI in direct mode
+        result = subprocess.run([
+            'claude', 
+            '--model',
+            'sonnet',
+            "-p",
+            prompt
+        ], capture_output=True, text=True, check=True)
+        
+        # Parse the JSON response
+        try:
+            conversations = json.loads(result.stdout.strip())
+            print(f"Successfully generated {len(conversations)} conversations")
+            return conversations
+        except json.JSONDecodeError as e:
+            print(f"Error: Claude Code returned invalid JSON: {e}")
+            print("Raw output:")
+            print(result.stdout)
+            sys.exit(1)
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Error calling Claude Code CLI: {e}")
+        print("Stderr:", e.stderr)
         sys.exit(1)
-    except json.JSONDecodeError as e:
-        print(f"Error: Invalid JSON in '{file_path}': {e}")
+    except FileNotFoundError:
+        print("Error: Claude Code CLI not found. Please install it first.")
+        print("Visit: https://claude.ai/code for installation instructions")
         sys.exit(1)
 
 def get_board_id(cursor, board_slug):
@@ -144,16 +197,23 @@ def populate_database(db_path, conversations):
 
 def main():
     """Main function."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Generate and populate MiniBB forum with realistic conversations using Claude Code CLI"
+    )
+    parser.add_argument("num_threads", type=int, help="Number of forum threads to generate")
+    parser.add_argument("posts_per_thread", type=int, help="Number of posts per thread")
+    
+    args = parser.parse_args()
+    
+    if args.num_threads <= 0 or args.posts_per_thread <= 0:
+        print("Error: Number of threads and posts per thread must be positive integers")
+        sys.exit(1)
+    
     # Set up paths
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
     db_path = project_root / "minibb.db"
-    
-    # Use command line argument for conversations file, or default
-    if len(sys.argv) > 1:
-        conversations_file = script_dir / sys.argv[1]
-    else:
-        conversations_file = script_dir / "forum_conversations.json"
     
     # Check if database exists
     if not db_path.exists():
@@ -161,8 +221,8 @@ def main():
         print("Please run this script from the project root or ensure the database exists")
         sys.exit(1)
     
-    # Load conversations
-    conversations = load_conversations(conversations_file)
+    # Generate conversations using Claude Code CLI
+    conversations = generate_conversations_with_claude(args.num_threads, args.posts_per_thread)
     
     # Populate database
     populate_database(db_path, conversations)
